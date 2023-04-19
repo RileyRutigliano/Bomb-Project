@@ -1,14 +1,14 @@
 #################################
 # CSC 102 Defuse the Bomb Project
 # Configuration file
-# Team: 
+# Team: The Atomic Bomb (Libby Divers and Riley Rutigliano)
 #################################
 
 # constants
 DEBUG = True        # debug mode?
 RPi = False           # is this running on the RPi?
 ANIMATE = True       # animate the LCD text?
-SHOW_BUTTONS = False # show the Pause and Quit buttons on the main LCD GUI?
+SHOW_BUTTONS = True # show the Pause and Quit buttons on the main LCD GUI?
 COUNTDOWN = 300      # the initial bomb countdown value (seconds)
 NUM_STRIKES = 5      # the total strikes allowed before the bomb "explodes"
 NUM_PHASES = 4       # the total number of initial active bomb phases
@@ -100,7 +100,7 @@ def genSerial():
     while (len(serial_digits) < 3 or toggle_value - sum(serial_digits) > 0):
         d = randint(0, min(9, toggle_value - sum(serial_digits)))
         serial_digits.append(d)
-
+        
     # set the letters (used in the jumper wires phase)
     jumper_indexes = [ 0 ] * 5
     while (sum(jumper_indexes) < 3):
@@ -108,9 +108,9 @@ def genSerial():
     jumper_value = int("".join([ str(n) for n in jumper_indexes ]), 2)
     # the letters indicate which jumper wires must be "cut"
     jumper_letters = [ chr(i + 65) for i, n in enumerate(jumper_indexes) if n == 1 ]
-
+    
     # form the serial number
-    serial = [ str(d) for d in serial_digits ] + jumper_letters
+    serial = [ str(d) for d in serial_digits ] + jumper_letters #choice(list(letterlist)) #
     # and shuffle it
     shuffle(serial)
     # finally, add a final letter (F..Z)
@@ -119,6 +119,8 @@ def genSerial():
     serial = "".join(serial)
 
     return serial, toggle_value, jumper_value
+
+
 
 # generates the keypad combination from a keyword and rotation key
 def genKeypadCombination():
@@ -152,9 +154,9 @@ def genKeypadCombination():
                  "What gets wet when drying": "TOWEL",\
                  "David's father has three sons: Snap, Crackle, and ___.": "DAVID",\
                  "What has 13 hearts, but no other organs?": "CARDS",\
-                 "Different lights make me strange, for each one my size will change. What am I?": "PUPIL",\
+                 "What has hands, but can't clap?": "CLOCK",\
                  "What word looks the same upside down and backwards?": "SWIMS",\
-                 "I am a word of five letters and people eat me. If you remove the first letter, I become a form of energy. Remove the first two and I'm needed to live. Scramble the last three and you can drink me. What am I?": "WHEAT",\
+                 "What gets bigger when more is taken away?": "HOLES",\
                  "What word is always spelled wrong?": "WRONG",\
                  "I have no legs but never walk, but I always run. What am I?": "RIVER"}
 
@@ -162,13 +164,78 @@ def genKeypadCombination():
     rot = randint(1, 25)
 
     # pick a keyword and matching passphrase
-    keyword, passphrase = choice(list(keywords.items()))
-    
-    # encrypt the passphrase and get its combination
+    keyword,passphrase = choice(list(keywords.items()))
+
+# encrypt the passphrase and get its combination
     #cipher_keyword = encrypt(keyword, rot)
     combination = digits(passphrase)
 
     return keyword, combination, passphrase, rot #, cipher_keyword
+
+def wirecombo():
+    # the list of riddles and matching answers
+    wireword = { "coal": 1,\
+                 "grass": 2,\
+                 "a creeper": 3,\
+                 "plum": 4,\
+                 "black and purple": 5,\
+                 "purple and green": 6,\
+                 "black green and purple": 7,\
+                 "sky": 8,\
+                 "bruise": 9,\
+                 "blue and green": 10,\
+                 "blue green and black": 11,\
+                 "blue and purple": 12}
+
+    key,passphrase = choice(list(wireword.items()))   
+ 
+    wires_target = passphrase
+    
+    return key, passphrase    
+
+def togglescombo():
+    # the combos for the toggles with the corresponding binary combo
+    letterlist = { "A": 1,\
+                   "B": 2,\
+                   "AB": 3,\
+                   "C": 4,\
+                   "AC": 5,\
+                   "BC": 6,\
+                   "ABC": 7,\
+                   "D": 8,\
+                   "AD": 9,\
+                   "BD": 10,\
+                   "ABD": 11,\
+                   "CD": 12,\
+                   "ACD": 13,\
+                   "BCD": 14,\
+                   "ABCD": 15}
+    letter, answer = choice(list(letterlist.items()))
+    
+    toggles_target = answer
+    
+    return letter, answer
+    
+    
+"""    
+    print(wires_target)
+    b_target = bin(wires_target)[2:].zfill(5) #5 for wires and 4 for toggles
+    print (b_target)
+    l_target =[]
+    for bit in b_target:
+        l_target.append(bool(int(bit)))
+        print (l_target) 
+
+    bitstring = []
+    for bit in l_target:
+        bitstring.append(str(int(bit)))
+    print(bitstring)
+    bitstring = "".join(bitstring)
+    print(bitstring)
+    value = int(bitstring, 2)
+    print(value)
+"""
+
 
 ###############################
 # generate the bomb's specifics
@@ -177,8 +244,11 @@ def genKeypadCombination():
 #  serial: the bomb's serial number
 #  toggles_target: the toggles phase defuse value
 #  wires_target: the wires phase defuse value
-serial, toggles_target, wires_target = genSerial()
+serial, toggles_target, jumper_value = genSerial() #wires_target
 
+key, wires_target = wirecombo()
+
+letter, toggles_target = togglescombo()
 # generate the combination for the keypad phase
 #  keyword: the plaintext keyword for the lookup table
 #  cipher_keyword: the encrypted keyword for the lookup table
@@ -189,20 +259,24 @@ keyword, keypad_target, passphrase, rot = genKeypadCombination() #, cipher_keywo
 
 # generate the color of the pushbutton (which determines how to defuse the phase)
 button_color = choice(["R", "G", "B"])
-# appropriately set the target (R is None)
+# appropriately set the target
 button_target = None
-# G is the first numeric digit in the serial number
+
+# G is the second to last digit in the serial number
 if (button_color == "G"):
-    button_target = [ n for n in serial if n.isdigit() ][0]
-# B is the last numeric digit in the serial number
+    button_target = [ n for n in serial if n.isdigit() ][-2]
+# B is the third numeric digit in the serial number
 elif (button_color == "B"):
-    button_target = [ n for n in serial if n.isdigit() ][-1]
+    button_target = [ n for n in serial if n.isdigit() ][2]   
+# R is the first numeric digit in the serial number
+elif (button_color == "R"):
+    button_target = [ n for n in serial if n.isdigit() ][0]
 
 if (DEBUG):
-    print(f"Serial number: {serial}")
+    print(f"Serial number: {letter}-{serial}")
     print(f"Toggles target: {bin(toggles_target)[2:].zfill(4)}/{toggles_target}")
     print(f"Wires target: {bin(wires_target)[2:].zfill(5)}/{wires_target}")
-    print(f"Keypad target: {keypad_target}/{passphrase}/{keyword}/(rot={rot})") #{cipher_keyword}
+    print(f"Keypad target: {keypad_target}/{passphrase}/{keyword}/(key={key})") #{cipher_keyword}
     print(f"Button target: {button_target}")
 
 # set the bomb's LCD bootup text
@@ -211,9 +285,10 @@ boot_text = f"Booting...\n\x00\x00"\
             f"*Kernel v3.1.4-159 loaded.\n"\
             f"Initializing subsystems...\n\x00"\
             f"*System model: 102BOMBv4.2\n"\
-            f"*Serial number: {serial}\n"\
+            f"*Serial number: {letter}-{serial}\n"\
             f"Encrypting keypad...\n\x00"\
-            f"*Keyword: {keyword}; key: {rot}\n"\
+            f"*Keyword: {keyword}\n"\
+            f"*Key: {key}\n"\
             f"*{''.join(ascii_uppercase)}\n"\
             f"*{''.join([str(n % 10) for n in range(26)])}\n"\
             f"Rendering phases...\x00"
