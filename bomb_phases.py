@@ -5,7 +5,7 @@
 #################################
 
 # import the configs
-from OLD_configs import *
+from bomb_configs import *
 # other imports
 from tkinter import *
 import tkinter
