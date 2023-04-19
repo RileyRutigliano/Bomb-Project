@@ -1,11 +1,11 @@
 #################################
 # CSC 102 Defuse the Bomb Project
 # GUI and Phase class definitions
-# Team: 
+# Team: The Atomic Bomb (Libby Divers and Riley Rutigliano)
 #################################
 
 # import the configs
-from bomb_configs import *
+from OLD_configs import *
 # other imports
 from tkinter import *
 import tkinter
@@ -229,6 +229,7 @@ class Keypad(PhaseThread):
 class Wires(PhaseThread):
     def __init__(self, component, target, name="Wires"):
         super().__init__(name, component, target)
+        self._prev_value = self._value
 
     # runs the thread
     def run(self):
@@ -242,20 +243,39 @@ class Wires(PhaseThread):
                 self._defused = True
             # the component state has changed
             elif (self._value != self._prev_value):
-                if (not self._check_state()):
+                if (not self._check_phases()):
                     self._failed = True
                 # note the updated state
                 self._prev_value = self._value
             sleep(0.1)
-                
-                
+
+    def _get_int_state(self):
+        state = []
+        for pin in self._component:
+            state.append(pin.value)
+        # state = [F, T, T, F]
+        value = []
+        for s in state:
+            value.append(str(int(s)))
+        value = "".join(value)
+        value = int(value, 2)
+        return value                     
+
+    def check_state(self):
+        return True
+        # get TF list of current state (self._value)
+        # get TF list of previous state (self._prev_value)
+        # determine which wire (index) was changed
+        # get TF list of target state (self._target)
+        # is corresponding index and compent state correct?
+        # return TF
+
     # returns the jumper wires state as a string
     def __str__(self):
         if (self._defused):
             return "DEFUSED"
         else:
-            return self._value
-
+            return f"(self._value)"
 # the pushbutton phase
 class Button(PhaseThread):
     def __init__(self, component_state, component_rgb, target, color, timer, name="Button"):
@@ -311,16 +331,50 @@ class Button(PhaseThread):
 class Toggles(PhaseThread):
     def __init__(self, component, target, name="Toggles"):
         super().__init__(name, component, target)
-
+        self._prev_value = self._value        
+        
     # runs the thread
     def run(self):
         # TODO
-        pass
-   
-    # returns the toggle switches state as a string
+        self._running = True
+        while (self._running):
+            # get the compenent value
+            self._value = self._get_int_state()
+            # the component value is correct -> phase defused
+            if (self._value == self._target):
+                self._defused = True
+            # the component state has changed
+            elif (self._value != self._prev_value):
+                if (not self._check_phases()):
+                    self._failed = True
+                # note the updated state
+                self._prev_value = self._value
+            sleep(0.1)
+
+    def _get_int_state(self):
+        state = []
+        for pin in self._component:
+            state.append(pin.value)
+        # state = [F, T, T, F]
+        value = []
+        for s in state:
+            value.append(str(int(s)))
+        value = "".join(value)
+        value = int(value, 2)
+        return value
+    
+    def check_state(self):
+        return True
+        # get TF list of current state (self._value)
+        # get TF list of previous state (self._prev_value)
+        # determine which wire (index) was changed
+        # get TF list of target state (self._target)
+        # is corresponding index and compent state correct?
+        # return TF
+                
+    # returns the jumper wires state as a string
     def __str__(self):
         if (self._defused):
             return "DEFUSED"
         else:
-            # TODO
-            pass
+            return f"(self._value)"
